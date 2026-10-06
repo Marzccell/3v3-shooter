@@ -1,0 +1,115 @@
+'use strict';
+
+// Exercise the browser client with independent touch pointers and changing viewports.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const nodes = new Map(), events = {}, sent = [];
+let canvasRect = {left:0, top:44, width:844, height:346};
+const ctx = new Proxy({createLinearGradient:() => ({addColorStop(){}})}, {
+  get:(object, key) => object[key] || (() => {})
+});
+function node(key) {
+  if (!nodes.has(key)) nodes.set(key, {
+    value:'', textContent:'', style:{}, width:1200, height:720,
+    classList:{add(){}, remove(){}, toggle(){}},
+    addEventListener(type, fn){this[type] = fn;},
+    getContext:() => ctx,
+    getBoundingClientRect:() => key === 'game' ? canvasRect : {
+      left:key === 'aimStick' ? 724 : 16, top:220, width:104, height:104
+    },
+    querySelector:() => node(key + '-knob'),
+    setPointerCapture(id){this.pointer = id;},
+    hasPointerCapture(id){return this.pointer === id;},
+    releasePointerCapture(){this.pointer = null;},
+    replaceChildren(){}, append(){}
+  });
+  return nodes.get(key);
+}
+const document = {
+  body:{dataset:{}, classList:node('body').classList},
+  documentElement:{}, getElementById:node, createElement:node,
+  addEventListener(type, fn){events[type] = fn;}
+};
+const sandbox = {
+  document,
+  window:{devicePixelRatio:3, addEventListener(type, fn){events[type] = fn;}},
+  screen:{orientation:{lock:async() => {}}},
+  matchMedia:() => ({matches:true}),
+  location:{protocol:'http:', host:'localhost', search:''}, URLSearchParams,
+  performance:{now:() => 100},
+  setInterval(fn){sandbox.tick = fn;},
+  requestAnimationFrame(fn){sandbox.frame = fn;},
+  WebSocket:class {
+    constructor(){sandbox.socket = this;this.readyState = 1;}
+    send(raw){sent.push(JSON.parse(raw));}
+  }
+};
+vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8'), sandbox);
+sandbox.socket.onopen();
+sandbox.socket.onmessage({data:JSON.stringify({type:'joined', id:'me'})});
+sandbox.socket.onmessage({data:JSON.stringify({
+  type:'state', phase:'playing',
+  players:[{id:'me', name:'Bintang', team:'blue', x:100, y:360, hp:100, dashCooldown:0, invulnerable:1}],
+  walls:[], bullets:[], score:{blue:0, red:0}, remaining:180
+})});
+const input = () => {sandbox.tick();return sent.at(-1).input;};
+const pointer = (pointerId, clientX, clientY) => ({pointerId, clientX, clientY, preventDefault(){}});
+
+// Two thumbs can move and shoot at the same time; releasing one preserves the other.
+node('moveStick').onpointerdown(pointer(1, 104, 272));
+node('aimStick').onpointerdown(pointer(2, 776, 236));
+assert.ok(input().mx > .9);
+assert.equal(input().ay, -1);
+assert.equal(input().fire, true);
+node('aimStick').onpointerup(pointer(99, 776, 236));
+assert.equal(input().fire, true, 'an unrelated finger cannot release aim');
+node('aimStick').onpointerup(pointer(2, 776, 236));
+assert.equal(input().fire, false);
+assert.ok(input().mx > .9, 'releasing aim must preserve movement');
+node('moveStick').onpointercancel(pointer(1, 104, 272));
+assert.equal(input().mx, 0);
+
+// A small finger wobble near the center must neither move nor fire.
+node('moveStick').onpointerdown(pointer(3, 69, 272));
+node('aimStick').onpointerdown(pointer(4, 777, 272));
+assert.equal(input().mx, 0);
+assert.equal(input().fire, false);
+events.blur();
+
+for (const [width, height] of [[844,346], [667,331], [915,368], [390,800]]) {
+  canvasRect = {left:0, top:44, width, height};
+  node('moveStick').onpointerdown(pointer(5, 104, 272));
+  node('dash').onpointerdown({preventDefault(){}});
+  events.resize();
+  const view = vm.runInContext('view', sandbox);
+  const canvas = node('game');
+  assert.equal(canvas.width, width * 2, 'render resolution is capped at 2x');
+  assert.equal(canvas.height, height * 2);
+  assert.ok(view.x >= 0 && view.y >= 0);
+  assert.ok(view.x + 1200 * view.scale <= canvas.width + .001);
+  assert.ok(view.y + 720 * view.scale <= canvas.height + .001, 'the entire arena remains visible');
+  assert.equal(input().mx, 0, 'rotation clears held movement');
+  assert.equal(input().dash, false);
+  assert.equal(node('moveStick-knob').style.transform, '');
+  sandbox.frame();
+}
+
+async function fullscreen() {
+  let requests = 0;
+  document.documentElement.requestFullscreen = async() => {requests++;document.fullscreenElement = document.documentElement;};
+  document.exitFullscreen = async() => {document.fullscreenElement = null;};
+  await node('fullscreen').onclick();
+  assert.equal(requests, 1);
+  events.fullscreenchange();
+  assert.equal(node('fullscreen').textContent, 'Keluar layar penuh');
+  await node('fullscreen').onclick();
+  assert.equal(document.fullscreenElement, null);
+  document.documentElement.requestFullscreen = async() => {throw Error('Unsupported');};
+  await node('fullscreen').onclick(); // Rejection must leave browser play usable.
+  assert.equal(input().fire, false);
+  console.log('LULUS: joystick dua jari, dead zone, release/cancel, resize/rotasi pada 4 ukuran HP, arena tanpa potongan/distorsi, fullscreen dan fallback.');
+}
+fullscreen().catch(error => {console.error(error);process.exitCode = 1;});
