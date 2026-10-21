@@ -1,0 +1,102 @@
+ARENA SAHABAT - PANDUAN CEPAT GURU
+Game LAN 3 lawan 3 | Pertandingan 3 menit
+Paket untuk laptop Windows x64
+
+PERSIAPAN SATU KALI
+1. Klik kanan ZIP Arena Sahabat, lalu pilih Extract All / Ekstrak Semua.
+2. Simpan seluruh folder hasil ekstrak di Documents pada laptop guru.
+3. Di dalam folder, pastikan ada MULAI GAME.bat, peluncur.js, server.js,
+   game.js, folder public, folder runtime, dan folder node_modules.
+4. Untuk akses cepat: klik kanan MULAI GAME.bat > Show more options /
+   Tampilkan opsi lainnya > Send to / Kirim ke > Desktop (create shortcut).
+   Nama menu dapat berbeda menurut versi Windows.
+5. Folder game harus tetap berada di tempatnya agar shortcut tetap berfungsi.
+
+Node.js dan library sudah disertakan. Tidak perlu membuka GitHub, membuat
+akun pemain, memasang Node.js, atau mengetik perintah untuk bermain.
+Paket ini untuk Windows x64; paket server untuk Mac memerlukan penyesuaian.
+HP Android, iPhone, dan laptop lain bergabung melalui browser masing-masing.
+
+CARA MEMULAI SETIAP KEGIATAN
+1. Hubungkan laptop guru dan 6 perangkat pemain ke Wi-Fi yang sama.
+   Internet tidak diperlukan; jaringan harus mengizinkan komunikasi
+   antarperangkat. Uji lebih dahulu pada Wi-Fi sekolah.
+2. Klik dua kali MULAI GAME.bat atau shortcut di Desktop.
+3. Biarkan jendela server tetap terbuka. Halaman pengelola akan dibuka
+   otomatis di browser. Tunggu tulisan "Pengelola terhubung".
+4. Klik "Buat room".
+5. Pada "Alamat jaringan laptop", pilih alamat Wi-Fi laptop.
+   Jika ada beberapa pilihan, minta pendamping membantu memilih saat uji awal.
+6. Tampilkan QR kepada siswa. Siswa memindai QR melalui kamera HP.
+   Pemain laptop mengetik alamat jaringan yang ditampilkan pada panel guru.
+7. Siswa mengisi nama panggilan dan kode room jika belum terisi,
+   lalu menekan "Gabung tim" dan "Saya siap!".
+8. Guru memastikan ada 3 pemain Biru dan 3 pemain Merah, semuanya siap.
+   Pengelola tidak memakai slot pemain.
+9. Klik "Mulai pertandingan". Satu pertandingan berlangsung 3 menit.
+
+PENTING TENTANG ALAMAT DAN QR
+- Gunakan QR yang ditampilkan dalam room saat ini. Alamat laptop dan kode
+  room dapat berubah saat berganti jaringan atau membuka server baru.
+- Alamat "localhost" hanya untuk laptop guru. Pemain menggunakan alamat
+  jaringan atau QR dari panel guru.
+- Alamat Pengelola mengandung kunci guru. Gunakan untuk guru saja;
+  bagikan alamat pemain atau QR room kepada siswa.
+
+KONTROL PEMAIN
+HP: putar mendatar. Joystick kiri untuk bergerak; joystick kanan untuk
+membidik dan menembak. Tombol DASH untuk bergerak cepat.
+Laptop: WASD / tombol panah untuk bergerak; mouse dan tahan klik untuk
+menembak; spasi untuk dash. Tombol "Kontrol" bisa mengganti mode HP / PC.
+
+MUSIK DAN ARENA
+- Musik latar dan efek berjalan langsung dari game; internet tidak diperlukan.
+- Ketuk "Musik & efek" di menu atau "Audio" saat bermain untuk mengaktifkan /
+  mematikan musik dan efek secara terpisah, serta mengatur volume musik.
+- Musik mulai saat pertandingan dan berhenti saat kembali ke lobi / hasil,
+  koneksi terputus, atau tab disembunyikan. Pilihan tersimpan di browser
+  masing-masing perangkat. Jika belum terdengar, ketuk tombol Audio dahulu.
+- Arena lebih lapang, dengan susunan enam penghalang utama yang tetap sama
+  dan tambahan cover di sisi arena. Kontrol dan aturan pertandingan tetap.
+
+MENGULANG DAN MENGAKHIRI
+- Seusai pertandingan, klik "Kembali ke lobi / batalkan" pada panel guru.
+  Semua pemain menekan "Saya siap!" kembali, lalu guru memulai pertandingan.
+- Jika pemain terputus, pertandingan kembali ke lobi. Pemain membuka ulang
+  alamat atau QR, bergabung lagi, dan semua pemain menyatakan siap kembali.
+- Jika selesai seluruh kegiatan, klik jendela server, ketik Q, lalu Enter.
+  Tekan tombol apa saja untuk menutup jendela setelah server berhenti.
+- Menutup tab browser guru saja tidak menghentikan server.
+- Untuk kegiatan berikutnya, buka MULAI GAME.bat lagi dan buat room baru.
+
+JIKA ADA MASALAH
+Browser guru tidak terbuka:
+  Salin SELURUH alamat setelah "Pengelola:" di jendela server ke browser,
+  termasuk bagian setelah tanda #. Membuka /admin saja tidak cukup.
+
+HP tidak bisa membuka game:
+  Pastikan server masih berjalan, semua perangkat berada di jaringan yang
+  sama, dan alamat Wi-Fi laptop yang dipilih sudah benar. Jika terhalang
+  Windows Firewall, minta pendamping memberi izin runtime/node.exe pada
+  profil jaringan sekolah yang sesuai. Pengaturan Wi-Fi tamu dapat
+  memisahkan perangkat; minta pendamping memeriksa akses antarperangkat.
+
+Tombol Mulai pertandingan belum aktif:
+  Harus ada tepat 6 pemain, 3 Biru dan 3 Merah, semuanya menekan "Saya siap!".
+  Jika guru memindah tim pemain, pemain tersebut harus menyatakan siap lagi.
+
+Port 3000 sedang digunakan:
+  Gunakan jendela server Arena Sahabat yang sudah terbuka. Jika ingin
+  memulai ulang, ketik Q lalu Enter pada server lama, kemudian jalankan lagi.
+  Jika tidak ada server lama, minta pendamping memeriksa aplikasi lain.
+
+File tidak ditemukan / paket belum lengkap:
+  Ekstrak ulang seluruh ZIP. Jangan menjalankan langsung dari dalam ZIP,
+  memindahkan file MULAI GAME.bat sendirian, atau menghapus node_modules.
+
+Jika program diblokir atau memerlukan izin administrator sekolah,
+hubungi pendamping IT sekolah untuk memeriksa dan mengizinkan paket ini.
+
+Simpan satu salinan ZIP dan panduan di penyimpanan sekolah sebagai cadangan.
+Lisensi game ada pada LICENSE; lisensi Node.js ada pada runtime/LICENSE;
+lisensi library berada di folder node_modules masing-masing.

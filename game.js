@@ -1,17 +1,14 @@
 'use strict';
 
-const WIDTH = 1200, HEIGHT = 720, RADIUS = 18;
-const walls = [
-  {x:260,y:130,w:90,h:180}, {x:850,y:130,w:90,h:180},
-  {x:520,y:260,w:160,h:60}, {x:520,y:400,w:160,h:60},
-  {x:260,y:410,w:90,h:180}, {x:850,y:410,w:90,h:180}
-];
+const arena = require('./public/arena-map');
+const {width:WIDTH,height:HEIGHT,walls} = arena;
+const RADIUS = 18;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const idle = () => ({mx:0,my:0,ax:1,ay:0,fire:false,dash:false});
 
 function spawn(player, index = 0) {
   Object.assign(player, {
-    x:player.team === 'blue' ? 100 : 1100, y:180 + (index % 3) * 180,
+    x:player.team === 'blue' ? arena.spawnInset : WIDTH-arena.spawnInset, y:arena.spawnYs[index % 3],
     hp:100, angle:player.team === 'blue' ? 0 : Math.PI,
     cooldown:0, dashCooldown:0, dashTime:0, invulnerable:1.2,
     deadUntil:0, lastInput:0, input:idle()
@@ -86,4 +83,4 @@ function step(room, dt, now) {
   });
 }
 
-module.exports = {walls, clamp, spawn, step};
+module.exports = {arena, walls, clamp, spawn, step};

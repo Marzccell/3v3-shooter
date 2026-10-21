@@ -13,6 +13,7 @@ const ctx = new Proxy({createLinearGradient:() => ({addColorStop(){}})}, {
 function node(key) {
   if (!nodes.has(key)) nodes.set(key, {
     value:'', textContent:'', style:{}, width:1200, height:720,
+    setAttribute(key,value){this[key]=value;},
     classList:{add(){}, remove(){}, toggle(){}},
     addEventListener(type, fn){this[type] = fn;},
     getContext:() => ctx,
@@ -47,7 +48,7 @@ const sandbox = {
   }
 };
 vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8'), sandbox);
+for(const file of ['arena-map.js','audio.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname, '../public/'+file), 'utf8'), sandbox);
 sandbox.socket.onopen();
 sandbox.socket.onmessage({data:JSON.stringify({type:'joined', id:'me'})});
 sandbox.socket.onmessage({data:JSON.stringify({
@@ -89,8 +90,8 @@ for (const [width, height] of [[844,346], [667,331], [915,368], [390,800]]) {
   assert.equal(canvas.width, width * 2, 'render resolution is capped at 2x');
   assert.equal(canvas.height, height * 2);
   assert.ok(view.x >= 0 && view.y >= 0);
-  assert.ok(view.x + 1200 * view.scale <= canvas.width + .001);
-  assert.ok(view.y + 720 * view.scale <= canvas.height + .001, 'the entire arena remains visible');
+  assert.ok(view.x + sandbox.ArenaMap.width * view.scale <= canvas.width + .001);
+  assert.ok(view.y + sandbox.ArenaMap.height * view.scale <= canvas.height + .001, 'the entire arena remains visible');
   assert.equal(input().mx, 0, 'rotation clears held movement');
   assert.equal(input().dash, false);
   assert.equal(node('moveStick-knob').style.transform, '');
@@ -110,6 +111,16 @@ async function fullscreen() {
   document.documentElement.requestFullscreen = async() => {throw Error('Unsupported');};
   await node('fullscreen').onclick(); // Rejection must leave browser play usable.
   assert.equal(input().fire, false);
-  console.log('LULUS: joystick dua jari, dead zone, release/cancel, resize/rotasi pada 4 ukuran HP, arena tanpa potongan/distorsi, fullscreen dan fallback.');
+  node('controlMode').onclick();
+  assert.equal(node('game').width,sandbox.ArenaMap.width);
+  const key=code=>({code,repeat:false,preventDefault(){}});
+  events.keydown(key('KeyD'));events.keydown(key('KeyW'));events.keydown(key('Space'));
+  const desktopInput=input();assert.equal(desktopInput.mx,1);assert.equal(desktopInput.my,-1);assert.equal(desktopInput.dash,true);assert.equal(input().dash,false,'dash is sent once');
+  events.keyup(key('KeyW'));events.keyup(key('KeyD'));assert.equal(input().mx,0);assert.equal(input().my,0);
+  node('game').pointerdown({pointerType:'mouse',button:0,pointerId:9,clientX:canvasRect.width*500/node('game').width,clientY:canvasRect.top+canvasRect.height*360/node('game').height});
+  assert.equal(input().ax,1);assert.equal(input().ay,0,'mouse aims correctly on the enlarged map');assert.equal(input().fire,true);
+  node('game').pointerup();assert.equal(input().fire,false);
+  events.keydown({...key('KeyD'),target:{closest:()=>true}});assert.equal(input().mx,0,'audio slider keyboard controls do not move the player');
+  console.log('LULUS: joystick dua jari, dead zone, release/cancel, 4 ukuran HP, fullscreen/fallback, WASD, mouse pada map baru, dan kontrol keyboard audio.');
 }
 fullscreen().catch(error => {console.error(error);process.exitCode = 1;});
