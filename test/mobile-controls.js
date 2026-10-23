@@ -6,17 +6,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const nodes = new Map(), events = {}, sent = [];
-let canvasRect = {left:0, top:44, width:844, height:346};
-const ctx = new Proxy({createLinearGradient:() => ({addColorStop(){}})}, {
+let canvasRect = {left:0, top:44, width:844, height:346},textWrites=0,elementID=0;
+const drawCalls=[];
+const ctx = new Proxy({createLinearGradient:() => ({addColorStop(){}}),drawImage(source){drawCalls.push(source);}}, {
   get:(object, key) => object[key] || (() => {})
 });
 function node(key) {
   if (!nodes.has(key)) nodes.set(key, {
-    value:'', textContent:'', style:{}, width:1200, height:720,
+    value:'', style:{}, width:1200, height:720,
+    get textContent(){return this.text||'';},set textContent(value){textWrites++;this.text=String(value);},
     setAttribute(key,value){this[key]=value;},
     classList:{add(){}, remove(){}, toggle(){}},
     addEventListener(type, fn){this[type] = fn;},
-    getContext:() => ctx,
+    getContext(type,options){this.contextOptions=options;return ctx;},
     getBoundingClientRect:() => key === 'game' ? canvasRect : {
       left:key === 'aimStick' ? 724 : 16, top:220, width:104, height:104
     },
@@ -30,7 +32,7 @@ function node(key) {
 }
 const document = {
   body:{dataset:{}, classList:node('body').classList},
-  documentElement:{}, getElementById:node, createElement:node,
+  documentElement:{}, getElementById:node, createElement:tag=>node(tag+'-'+(++elementID)),
   addEventListener(type, fn){events[type] = fn;}
 };
 const sandbox = {
@@ -59,6 +61,13 @@ sandbox.socket.onmessage({data:JSON.stringify({
 const input = () => {sandbox.tick();return sent.at(-1).input;};
 const pointer = (pointerId, clientX, clientY) => ({pointerId, clientX, clientY, preventDefault(){}});
 
+const sameState=vm.runInContext('JSON.stringify(current)',sandbox),beforeWrites=textWrites;
+for(let i=0;i<30;i++)sandbox.socket.onmessage({data:sameState});
+assert.equal(textWrites,beforeWrites,'unchanged network snapshots must not rewrite HUD text');
+const healthChanged=JSON.parse(sameState);healthChanged.players[0].hp=75;
+sandbox.socket.onmessage({data:JSON.stringify(healthChanged)});assert.equal(node('health').textContent,'HP 75','real HUD changes still appear immediately');
+sandbox.socket.onmessage({data:sameState});
+
 // Two thumbs can move and shoot at the same time; releasing one preserves the other.
 node('moveStick').onpointerdown(pointer(1, 104, 272));
 node('aimStick').onpointerdown(pointer(2, 776, 236));
@@ -80,15 +89,17 @@ assert.equal(input().mx, 0);
 assert.equal(input().fire, false);
 events.blur();
 
-for (const [width, height] of [[844,346], [667,331], [915,368], [390,800]]) {
+for (const [width, height] of [[844,346], [667,331], [915,368], [390,800], [3840,2160]]) {
   canvasRect = {left:0, top:44, width, height};
   node('moveStick').onpointerdown(pointer(5, 104, 272));
   node('dash').onpointerdown({preventDefault(){}});
   events.resize();
   const view = vm.runInContext('view', sandbox);
   const canvas = node('game');
-  assert.equal(canvas.width, width * 2, 'render resolution is capped at 2x');
-  assert.equal(canvas.height, height * 2);
+  const density=Math.min(1,1280/Math.max(width,height));
+  assert.equal(canvas.width,Math.round(width*density),'mobile pixel surface is bounded');
+  assert.equal(canvas.height,Math.round(height*density));
+  assert.ok(canvas.width*canvas.height<=width*height,'high-DPI screens no longer multiply the render workload');
   assert.ok(view.x >= 0 && view.y >= 0);
   assert.ok(view.x + sandbox.ArenaMap.width * view.scale <= canvas.width + .001);
   assert.ok(view.y + sandbox.ArenaMap.height * view.scale <= canvas.height + .001, 'the entire arena remains visible');
@@ -96,6 +107,14 @@ for (const [width, height] of [[844,346], [667,331], [915,368], [390,800]]) {
   assert.equal(input().dash, false);
   assert.equal(node('moveStick-knob').style.transform, '');
   sandbox.frame();
+  const layer=vm.runInContext('arenaLayer',sandbox),backdrop=vm.runInContext('arenaBackdrop',sandbox);
+  const floorCopies=drawCalls.filter(source=>source===layer).length;
+  sandbox.frame();events.resize();sandbox.frame();
+  assert.equal(drawCalls.filter(source=>source===layer).length,floorCopies,'unchanged frames and resize notifications reuse the pre-scaled map');
+  assert.equal(backdrop.width,canvas.width);assert.equal(backdrop.height,canvas.height);
+  assert.equal(canvas.contextOptions.alpha,false);assert.equal(backdrop.contextOptions.alpha,false);
+  node('game').pointermove({pointerType:'mouse',clientX:canvasRect.left+(view.x+500*view.scale)*width/canvas.width,clientY:canvasRect.top+(view.y+360*view.scale)*height/canvas.height});
+  const mouse=vm.runInContext('mouse',sandbox);assert.ok(Math.abs(mouse.x-1)<.000001&&Math.abs(mouse.y)<.000001,'world-space aim is independent of render resolution');
 }
 
 async function fullscreen() {
@@ -121,6 +140,6 @@ async function fullscreen() {
   assert.equal(input().ax,1);assert.equal(input().ay,0,'mouse aims correctly on the enlarged map');assert.equal(input().fire,true);
   node('game').pointerup();assert.equal(input().fire,false);
   events.keydown({...key('KeyD'),target:{closest:()=>true}});assert.equal(input().mx,0,'audio slider keyboard controls do not move the player');
-  console.log('LULUS: joystick dua jari, dead zone, release/cancel, 4 ukuran HP, fullscreen/fallback, WASD, mouse pada map baru, dan kontrol keyboard audio.');
+  console.log('LULUS: joystick dua jari, 5 ukuran HP/tablet, render ringan, cache latar, HUD tanpa penulisan berulang, rotasi/fullscreen, WASD dan bidikan sesuai koordinat arena.');
 }
 fullscreen().catch(error => {console.error(error);process.exitCode = 1;});

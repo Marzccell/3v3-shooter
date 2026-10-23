@@ -1,0 +1,27 @@
+PANDUAN SINGKAT ARENA SAHABAT
+
+1. Download file ZIP game Arena Sahabat yang dibagikan.
+
+2. Extract seluruh isi ZIP ke satu folder di laptop guru/operator.
+
+3. Hubungkan laptop operator dan perangkat pemain ke Wi-Fi yang sama.
+
+4. Buka folder game, lalu klik dua kali MULAI GAME.bat.
+
+5. Tunggu halaman operator terbuka otomatis. Biarkan jendela terminal/server tetap terbuka.
+
+6. Pada halaman operator, klik Buat room, lalu pilih alamat jaringan Wi-Fi laptop operator.
+
+7. Tampilkan QR dan kode room. Pemain HP memindai QR; pemain laptop membuka link pemain yang dibagikan operator.
+
+8. Setiap pemain mengisi nama panggilan dan kode room jika belum terisi, lalu menekan Gabung tim.
+
+9. Operator memastikan ada 6 pemain: 3 Tim Biru dan 3 Tim Merah. HP dan laptop boleh dicampur.
+
+10. Semua pemain menekan Saya siap!, kemudian operator menekan Mulai pertandingan.
+
+11. Pemain bermain selama 3 menit. HP menggunakan joystick; laptop menggunakan WASD/tombol panah dan mouse.
+
+12. Untuk bermain lagi, operator menekan Kembali ke lobi / batalkan, semua pemain menekan Siap kembali, lalu pertandingan dimulai lagi.
+
+13. Setelah selesai, operator membuka jendela terminal/server, mengetik Q, lalu menekan Enter untuk menghentikan game.

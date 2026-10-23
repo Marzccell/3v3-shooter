@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id),admin=document.body.dataset.admin==='true';let ws,id=null,current=null,frames=[],connected=false,keys={},mouse={x:1,y:0,fire:false},movement={x:0,y:0},aim={x:1,y:0,fire:false},dash=false,ready=false,touchMode=matchMedia('(pointer:coarse), (any-pointer:coarse)').matches;
-const canvas=$('game'),ctx=canvas.getContext('2d');$('code')&&($('code').value=new URLSearchParams(location.search).get('room')||'');
+const canvas=$('game'),ctx=canvas.getContext('2d',{alpha:false});$('code')&&($('code').value=new URLSearchParams(location.search).get('room')||'');
 const send=m=>{if(ws?.readyState===1)ws.send(JSON.stringify(m));};function notice(s){$('notice').textContent=s;}
 const arena=globalThis.ArenaMap;
 let view={scale:1,x:0,y:0};
@@ -23,7 +23,8 @@ if(!admin){
 const stickResets=[];function resetControls(){keys={};mouse.fire=false;movement={x:0,y:0};aim.fire=false;dash=false;for(const reset of stickResets)reset();}
 function connect(){ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}`);ws.onopen=()=>{connected=true;if(admin)send({type:'admin',token:location.hash.slice(1)});else notice('Terhubung. Masukkan nama dan gabung.');};ws.onclose=()=>{connected=false;syncAudio();resetControls();document.body.classList.remove('playing');$('arena').classList.add('hidden');notice('Koneksi terputus. Pastikan Wi-Fi tersambung, lalu muat ulang halaman untuk masuk kembali.');if(admin)$('connection').textContent='Koneksi terputus — muat ulang setelah server aktif.';};ws.onerror=()=>notice('Tidak dapat terhubung ke server. Periksa alamat dan Wi-Fi.');ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.type==='ping'){send({type:'pong'});return;}if(m.type==='error'){notice(m.message);return;}if(m.type==='adminOK'){$('connection').textContent='Pengelola terhubung';notice('');return;}if(m.type==='joined'){id=m.id;$('joinPanel').classList.add('hidden');$('lobby').classList.remove('hidden');notice('');}if(m.type==='state'){if(!admin&&!id)return;const prev=current;current=m;frames.push({time:performance.now(),s:m});if(frames.length>8)frames.shift();const phaseChanged=prev?.phase!==m.phase;if(phaseChanged){resetControls();frames=[{time:performance.now(),s:m}];}updateUI();if(phaseChanged){resizeCanvas();syncAudio();}}};}
 function updateTeams(){const target=$('teams');target.replaceChildren();for(const team of ['blue','red']){const div=document.createElement('div');div.className='team '+team;const h=document.createElement('h3');h.textContent=`Tim ${team==='blue'?'Biru':'Merah'} (${current.players.filter(p=>p.team===team).length}/3)`;div.append(h);for(const p of current.players.filter(p=>p.team===team)){const row=document.createElement('div');row.className='player';const n=document.createElement('span');n.textContent=p.name+(p.id===id?' (kamu)':'');row.append(n);const mark=document.createElement('span');mark.className='readyMark';mark.textContent=p.ready?'✓ Siap':'Menunggu';row.append(mark);if(admin&&current.phase==='lobby'){const select=document.createElement('select');for(const t of ['blue','red']){const opt=new Option(t==='blue'?'Biru':'Merah',t);select.add(opt);}select.value=p.team;select.onchange=()=>send({type:'team',id:p.id,team:select.value});row.append(select);}div.append(row);}target.append(div);}}
-let teamSignature='';function updateUI(){const playing=current.phase==='playing';document.body.classList.toggle('playing',playing);$('arena').classList.toggle('hidden',!playing);$('result').classList.toggle('hidden',current.phase!=='results');const signature=JSON.stringify([current.phase,current.players.map(p=>[p.id,p.name,p.team,p.ready])]);if(signature!==teamSignature){teamSignature=signature;updateTeams();}if(admin){$('create').disabled=current.phase!=='empty';$('roomInfo').classList.toggle('hidden',!current.code);if(current.code){$('roomCode').textContent=current.code;updateJoin();}$('start').disabled=current.phase!=='lobby'||current.players.length!==6||current.players.some(p=>!p.ready)||current.players.filter(p=>p.team==='blue').length!==3;$('reset').disabled=current.phase==='empty';}else{$('lobby').classList.toggle('hidden',current.phase!=='lobby');ready=current.players.find(p=>p.id===id)?.ready||false;$('ready').textContent=ready?'Siap ✓ (klik untuk batal)':'Saya siap!';}$('lobbyMsg').textContent=current.message||'Tunggu pengelola memulai pertandingan.';if(current.phase==='results'){$('winner').textContent=current.message;$('finalScore').textContent=`Biru ${current.score.blue} : ${current.score.red} Merah`;}if(playing){$('scoreB').textContent=current.score.blue;$('scoreR').textContent=current.score.red;const seconds=current.remaining;$('timer').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;const me=current.players.find(p=>p.id===id);if(me){$('health').textContent=`HP ${me.hp}`;$('respawn').textContent=me.hp<=0?'HP habis — kembali dalam 3 detik…':'';$('dash').textContent=me.dashCooldown>.1?`${me.dashCooldown.toFixed(1)}s`:'DASH';}}}
+function setText(key,value){const node=$(key),text=String(value);if(node.textContent!==text)node.textContent=text;}
+let teamSignature='';function updateUI(){const playing=current.phase==='playing';document.body.classList.toggle('playing',playing);$('arena').classList.toggle('hidden',!playing);$('result').classList.toggle('hidden',current.phase!=='results');const signature=JSON.stringify([current.phase,current.players.map(p=>[p.id,p.name,p.team,p.ready])]);if(signature!==teamSignature){teamSignature=signature;updateTeams();}if(admin){$('create').disabled=current.phase!=='empty';$('roomInfo').classList.toggle('hidden',!current.code);if(current.code){setText('roomCode',current.code);updateJoin();}$('start').disabled=current.phase!=='lobby'||current.players.length!==6||current.players.some(p=>!p.ready)||current.players.filter(p=>p.team==='blue').length!==3;$('reset').disabled=current.phase==='empty';}else{$('lobby').classList.toggle('hidden',current.phase!=='lobby');ready=current.players.find(p=>p.id===id)?.ready||false;setText('ready',ready?'Siap ✓ (klik untuk batal)':'Saya siap!');}setText('lobbyMsg',current.message||'Tunggu pengelola memulai pertandingan.');if(current.phase==='results'){setText('winner',current.message);setText('finalScore',`Biru ${current.score.blue} : ${current.score.red} Merah`);}if(playing){setText('scoreB',current.score.blue);setText('scoreR',current.score.red);const seconds=current.remaining;setText('timer',`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`);const me=current.players.find(p=>p.id===id);if(me){setText('health',`HP ${me.hp}`);setText('respawn',me.hp<=0?'HP habis — kembali dalam 3 detik…':'');setText('dash',me.dashCooldown>.1?`${me.dashCooldown.toFixed(1)}s`:'DASH');}}}
 function updateJoin(){if(!admin||!current?.code||!$('ip').value)return;const url=`http://${$('ip').value}:${location.port||3000}/?room=${current.code}`;$('joinLink').textContent=url;$('joinLink').href=url;const qrURL=`/qr?host=${encodeURIComponent($('ip').value)}&room=${current.code}`;if($('qr').getAttribute('src')!==qrURL)$('qr').src=qrURL;}
 if(admin){fetch('/api/network').then(r=>r.json()).then(n=>{for(const ip of n.ips)$('ip').add(new Option(ip,ip));if(!n.ips.length){$('ip').add(new Option('localhost (jaringan belum terdeteksi)','localhost'));notice('Jaringan LAN belum terdeteksi. Sambungkan laptop ke Wi-Fi dan muat ulang.');}updateJoin();});$('ip').onchange=updateJoin;$('create').onclick=()=>send({type:'create'});$('start').onclick=()=>{notice('');send({type:'start'});};$('reset').onclick=()=>send({type:'reset'});}else{$('joinForm').onsubmit=e=>{e.preventDefault();if(!connected)return notice('Server belum tersambung');void sound.unlock();send({type:'join',code:$('code').value.trim(),name:$('nickname').value});};$('ready').onclick=()=>{void sound.unlock();send({type:'ready',ready:!ready});if(touchMode&&!ready)enterFullscreen();};}
 window.addEventListener('keydown',e=>{if(current?.phase!=='playing'||admin||e.target?.closest?.('#audioSettings'))return;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();keys[e.code]=true;if(e.code==='Space'&&!e.repeat)dash=true;});window.addEventListener('keyup',e=>keys[e.code]=false);window.addEventListener('blur',resetControls);document.addEventListener('visibilitychange',()=>{if(document.hidden)resetControls();syncAudio();});
@@ -48,9 +49,16 @@ function stick(el,isAim){
 if(!admin){stick($('moveStick'),false);stick($('aimStick'),true);$('dash').onpointerdown=e=>{e.preventDefault();dash=true;};}
 
 function resizeCanvas(){
-  if(!touchMode||admin){canvas.width=arena.width;canvas.height=arena.height;view={scale:1,x:0,y:0};return;}
+  if(!touchMode||admin){
+    if(canvas.width!==arena.width)canvas.width=arena.width;
+    if(canvas.height!==arena.height)canvas.height=arena.height;
+    view={scale:1,x:0,y:0};return;
+  }
   const r=canvas.getBoundingClientRect();if(!r.width||!r.height)return;
-  const dpr=Math.min(window.devicePixelRatio||1,2),w=Math.round(r.width*dpr),h=Math.round(r.height*dpr);
+  // Mobile draws at CSS resolution instead of paying for 2x pixels per axis.
+  // Keep a bounded surface on tablets too; world coordinates stay unchanged.
+  const dpr=Math.min(window.devicePixelRatio||1,1,1280/Math.max(r.width,r.height));
+  const w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
   if(canvas.width!==w)canvas.width=w;if(canvas.height!==h)canvas.height=h;
   const scale=Math.min(w/arena.width,h/arena.height);view={scale,x:(w-arena.width*scale)/2,y:(h-arena.height*scale)/2};
 }
@@ -75,7 +83,7 @@ if(!admin){
 
 let lastSound=0;setInterval(()=>{if(admin||current?.phase!=='playing'||!connected)return;const coarse=touchMode;const input={mx:coarse?movement.x:(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0),my:coarse?movement.y:(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0),ax:coarse?aim.x:mouse.x,ay:coarse?aim.y:mouse.y,fire:coarse?aim.fire:mouse.fire,dash};send({type:'input',input});dash=false;if(input.fire&&performance.now()-lastSound>320){lastSound=performance.now();sound.blip();}},1000/30);
 
-let arenaLayer=null;
+let arenaLayer=null,arenaBackdrop=null,backdropKey='';
 function buildArenaLayer(){
   arenaLayer=document.createElement('canvas');arenaLayer.width=arena.width;arenaLayer.height=arena.height;
   const g=arenaLayer.getContext('2d'),w=arena.width,h=arena.height;
@@ -141,14 +149,28 @@ function drawCharacter(p,x,y){
   ctx.fillStyle=light;ctx.beginPath();ctx.arc(-8,0,2,0,Math.PI*2);ctx.fill();ctx.restore();
 }
 
+function drawBackdrop(){
+  if(!arenaLayer)buildArenaLayer();
+  const key=[canvas.width,canvas.height,view.scale,view.x,view.y].join(':');
+  if(key!==backdropKey){
+    if(!arenaBackdrop)arenaBackdrop=document.createElement('canvas');
+    arenaBackdrop.width=canvas.width;arenaBackdrop.height=canvas.height;
+    const g=arenaBackdrop.getContext('2d',{alpha:false});
+    g.fillStyle='#152f36';g.fillRect(0,0,canvas.width,canvas.height);
+    g.setTransform(view.scale,0,0,view.scale,view.x,view.y);
+    g.drawImage(arenaLayer,0,0);backdropKey=key;
+  }
+  // Copy a pre-scaled background; avoid resizing the full map every frame.
+  ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(arenaBackdrop,0,0);
+}
+
 function draw(){
   requestAnimationFrame(draw);if(current?.phase!=='playing')return;
   const now=performance.now()-70;let a=frames[0],b=frames[frames.length-1];
   for(let i=1;i<frames.length;i++)if(frames[i].time>=now){a=frames[i-1];b=frames[i];break;}
   const t=a===b?1:Math.max(0,Math.min(1,(now-a.time)/(b.time-a.time)));
-  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#152f36';ctx.fillRect(0,0,canvas.width,canvas.height);
+  drawBackdrop();
   ctx.setTransform(view.scale,0,0,view.scale,view.x,view.y);
-  if(!arenaLayer)buildArenaLayer();ctx.drawImage(arenaLayer,0,0);
   for(const bullet of b.s.bullets){
     ctx.strokeStyle=bullet.team==='blue'?'#9fe3ff88':'#ffb6a088';ctx.lineWidth=4;
     ctx.beginPath();ctx.moveTo(bullet.x-(bullet.vx||0)*.012,bullet.y-(bullet.vy||0)*.012);ctx.lineTo(bullet.x,bullet.y);ctx.stroke();
